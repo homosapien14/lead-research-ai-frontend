@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from 'axios';
-import { Lead, LeadStatus, CreateLeadDto, UpdateLeadDto } from '@/types/lead';
+import { leadsService, Lead } from '@/lib/services/leads.service';
+import { LeadStatus } from '@/types/lead';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import {
@@ -72,15 +72,34 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       jobTitle: lead?.jobTitle || '',
       industry: lead?.industry || '',
       companySize: lead?.companySize || '',
-      linkedinUrl: lead?.metadata?.linkedinUrl || '',
-      twitterUrl: lead?.metadata?.twitterUrl || '',
-      instagramUrl: lead?.metadata?.instagramUrl || '',
-      websiteUrl: lead?.metadata?.websiteUrl || '',
+      linkedinUrl: lead?.linkedinUrl || '',
+      websiteUrl: lead?.websiteUrl || '',
       status: lead?.status || LeadStatus.NEW,
       tags: lead?.tags?.join(', ') || '',
       notes: lead?.metadata?.notes || '',
     },
   });
+
+  // Reset form when lead changes
+  useEffect(() => {
+    if (lead) {
+      form.reset({
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        email: lead.email,
+        phone: lead.phone || '',
+        company: lead.company || '',
+        jobTitle: lead.jobTitle || '',
+        industry: lead.industry || '',
+        companySize: lead.companySize || '',
+        linkedinUrl: lead.linkedinUrl || '',
+        websiteUrl: lead.websiteUrl || '',
+        status: lead.status,
+        tags: lead.tags?.join(', ') || '',
+        notes: lead.metadata?.notes || '',
+      });
+    }
+  }, [lead, form]);
 
   // Form submission handler
   const onSubmit = async (data: LeadFormValues) => {
@@ -89,12 +108,12 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
     try {
       // Process tags from comma-separated string to array
       const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-      
+
       // Prepare metadata
       const metadata: Record<string, any> = {
         notes: data.notes,
       };
-      
+
       // Add social links to metadata if provided
       if (data.linkedinUrl) metadata.linkedinUrl = data.linkedinUrl;
       if (data.twitterUrl) metadata.twitterUrl = data.twitterUrl;
@@ -102,7 +121,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       if (data.websiteUrl) metadata.websiteUrl = data.websiteUrl;
 
       // Prepare lead data
-      const leadData: CreateLeadDto | UpdateLeadDto = {
+      const leadData = {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -119,13 +138,13 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       let response;
       if (isEditing && lead) {
         // Update existing lead
-        response = await axios.put(`/api/leads/${lead.id}`, leadData);
+        response = await leadsService.updateLead(lead.id, leadData);
         toast.success("Lead Updated", {
           description: `${data.firstName} ${data.lastName} has been updated successfully.`,
         });
       } else {
         // Create new lead
-        response = await axios.post('/api/leads', leadData);
+        response = await leadsService.createLead(leadData);
         toast.success("Lead Created", {
           description: `${data.firstName} ${data.lastName} has been added successfully.`,
         });
@@ -133,14 +152,33 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       }
 
       // Call success callback with the created/updated lead
-      if (onSuccess && response.data) {
-        onSuccess(response.data);
+      if (onSuccess) {
+        onSuccess(response);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving lead:', error);
-      toast.error("Error", {
-        description: "There was a problem saving the lead. Please try again.",
-      });
+
+      // Handle specific error cases
+      if (error.response?.data?.message) {
+        if (typeof error.response.data.message === 'string') {
+          toast.error("Error", {
+            description: error.response.data.message,
+          });
+        } else if (Array.isArray(error.response.data.message)) {
+          toast.error("Error", {
+            description: error.response.data.message.join(', '),
+          });
+        }
+      } else if (error.response?.status === 409 ||
+        (error.response?.data?.code === 11000 && error.response?.data?.keyPattern?.email)) {
+        toast.error("Duplicate Email", {
+          description: "A lead with this email address already exists.",
+        });
+      } else {
+        toast.error("Error", {
+          description: "There was a problem saving the lead. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -255,8 +293,8 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Size</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -313,8 +351,8 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -372,15 +410,11 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={onCancel}>
+      <CardFooter className="flex justify-end gap-4">
+        <Button variant="outline" type="button" onClick={onCancel}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          form="lead-form" 
-          disabled={isSubmitting}
-        >
+        <Button type="submit" form="lead-form" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isEditing ? 'Update Lead' : 'Create Lead'}
         </Button>

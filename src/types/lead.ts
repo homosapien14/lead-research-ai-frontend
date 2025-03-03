@@ -56,19 +56,12 @@ export interface CreateLeadDto {
   jobTitle?: string;
   industry?: string;
   companySize?: string;
-  linkedinUrl?: string;
-  twitterUrl?: string;
-  instagramUrl?: string;
-  websiteUrl?: string;
+  status?: LeadStatus;
   tags?: string[];
   metadata?: Record<string, any>;
-  ownerId?: string;
-  status?: LeadStatus;
 }
 
-export interface UpdateLeadDto extends Partial<CreateLeadDto> {
-  status?: LeadStatus;
-}
+export interface UpdateLeadDto extends Partial<CreateLeadDto> { }
 
 export enum ImportSource {
   CSV = 'csv',

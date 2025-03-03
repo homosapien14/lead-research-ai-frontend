@@ -12,11 +12,11 @@ export default function LandingPage() {
               <span className="text-xl font-bold">Lead Research AI</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-stone-600 hover:text-stone-900">
+              <Link href="/auth/login" className="text-stone-600 hover:text-stone-900">
                 Login
               </Link>
-              <Link 
-                href="/signup" 
+              <Link
+                href="/auth/signup"
                 className="bg-stone-900 text-white px-4 py-2 rounded-md hover:bg-stone-800 transition-colors"
               >
                 Sign Up
@@ -37,14 +37,14 @@ export default function LandingPage() {
               Automate lead research by aggregating and analyzing publicly available data to generate actionable insights for your sales team.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link 
-                href="/signup" 
+              <Link
+                href="/signup"
                 className="bg-white text-stone-900 px-6 py-3 rounded-md font-medium hover:bg-stone-100 transition-colors"
               >
                 Get Started Free
               </Link>
-              <Link 
-                href="/demo" 
+              <Link
+                href="/demo"
                 className="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white/10 transition-colors"
               >
                 Request Demo
@@ -193,8 +193,8 @@ export default function LandingPage() {
                   <span>5 email campaigns</span>
                 </li>
               </ul>
-              <Link 
-                href="/signup?plan=starter" 
+              <Link
+                href="/signup?plan=starter"
                 className="block w-full bg-stone-900 text-white text-center px-6 py-3 rounded-md font-medium hover:bg-stone-800 transition-colors"
               >
                 Get Started
@@ -238,8 +238,8 @@ export default function LandingPage() {
                   <span>Team collaboration</span>
                 </li>
               </ul>
-              <Link 
-                href="/signup?plan=professional" 
+              <Link
+                href="/signup?plan=professional"
                 className="block w-full bg-stone-900 text-white text-center px-6 py-3 rounded-md font-medium hover:bg-stone-800 transition-colors"
               >
                 Get Started
@@ -284,8 +284,8 @@ export default function LandingPage() {
                   <span>Dedicated support</span>
                 </li>
               </ul>
-              <Link 
-                href="/signup?plan=enterprise" 
+              <Link
+                href="/signup?plan=enterprise"
                 className="block w-full bg-stone-900 text-white text-center px-6 py-3 rounded-md font-medium hover:bg-stone-800 transition-colors"
               >
                 Contact Sales

@@ -6,13 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetDescription, 
-  SheetFooter 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter
 } from '../ui/sheet';
 import {
   Form,
@@ -35,6 +35,7 @@ import {
 import { Switch } from '../ui/switch';
 import { Loader2, Upload } from 'lucide-react';
 import { ImportSource, DuplicateHandlingStrategy } from '@/types/lead';
+import { leadsService } from '@/lib/services/leads.service';
 
 // Form schema with zod for validation
 const importFormSchema = z.object({
@@ -91,67 +92,63 @@ export function ImportLeadsModal({ isOpen, onClose, onSuccess }: ImportLeadsModa
     setIsSubmitting(true);
 
     try {
-      // Process file or CSV content
-      let fileContent = '';
-      
-      if (data.file) {
-        fileContent = await readFileAsBase64(data.file);
-      } else if (data.csvContent) {
-        // Convert plain text to base64
-        fileContent = `data:text/csv;base64,${btoa(data.csvContent)}`;
+      if (!data.file) {
+        throw new Error('Please upload a file');
       }
 
       // Process tags
       const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
-      // Prepare request data
-      const importData = {
-        fileContent,
-        source: data.source,
-        duplicateHandling: data.duplicateHandling,
+      // Import leads using the service with all options
+      const result = await leadsService.importLeads({
+        file: data.file,
+        skipDuplicates: data.duplicateHandling === DuplicateHandlingStrategy.SKIP,
         validateEmails: data.validateEmails,
         enrichLeads: data.enrichLeads,
-        tags,
-      };
-
-      // Send request to API
-      const response = await axios.post('/api/leads/import/csv', importData);
-      
-      toast.success('Import Completed', {
-        description: `Successfully processed ${response.data.total} records.`,
+        tags: tags,
       });
 
-      // Reset form
-      form.reset();
-      setUploadedFileName(null);
+      if (result.success) {
+        // Show success message with detailed stats
+        toast.success('Import Completed', {
+          description: `Successfully processed ${result.totalProcessed} records:
+            • ${result.successCount} imported
+            • ${result.failureCount} failed${result.errors?.length ? '\nSee console for error details.' : ''}`,
+        });
 
-      // Call success callback
-      if (onSuccess) {
-        onSuccess(response.data);
+        // Log errors if any
+        if (result.errors?.length) {
+          console.error('Import errors:', result.errors);
+        }
+
+        // Reset form
+        form.reset();
+        setUploadedFileName(null);
+
+        // Call success callback
+        if (onSuccess) {
+          onSuccess({
+            total: result.totalProcessed,
+            created: result.successCount,
+            updated: 0,
+            skipped: result.failureCount,
+            errors: result.errors || [],
+          });
+        }
+
+        // Close modal
+        onClose();
+      } else {
+        throw new Error('Import failed');
       }
-
-      // Close modal
-      onClose();
     } catch (error) {
       console.error('Error importing leads:', error);
       toast.error('Import Failed', {
-        description: 'There was a problem importing leads. Please try again.',
+        description: error instanceof Error ? error.message : 'There was a problem importing leads. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Helper function to read file as base64
-  const readFileAsBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve(reader.result as string);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
   };
 
   return (
@@ -163,7 +160,7 @@ export function ImportLeadsModal({ isOpen, onClose, onSuccess }: ImportLeadsModa
             Import leads from CSV, Excel, or other sources.
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="py-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -173,8 +170,8 @@ export function ImportLeadsModal({ isOpen, onClose, onSuccess }: ImportLeadsModa
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Import Source</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -204,8 +201,8 @@ export function ImportLeadsModal({ isOpen, onClose, onSuccess }: ImportLeadsModa
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Duplicate Handling</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -345,9 +342,9 @@ export function ImportLeadsModal({ isOpen, onClose, onSuccess }: ImportLeadsModa
               />
 
               <SheetFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={onClose}
                 >
                   Cancel

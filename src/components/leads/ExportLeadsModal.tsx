@@ -6,13 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetDescription, 
-  SheetFooter 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter
 } from '../ui/sheet';
 import {
   Form,
@@ -36,6 +36,7 @@ import { Input } from '../ui/input';
 import { Loader2, FileDown } from 'lucide-react';
 import { ExportFormat, Lead } from '@/types/lead';
 import { Checkbox } from '../ui/checkbox';
+import { leadsService, LeadExportOptions } from '@/lib/services/leads.service';
 
 // Form schema with zod for validation
 const exportFormSchema = z.object({
@@ -95,46 +96,58 @@ export function ExportLeadsModal({ isOpen, onClose, selectedLeads = [] }: Export
     setIsSubmitting(true);
 
     try {
-      // Prepare request payload
-      const exportData = {
-        format: data.format,
+      // Prepare export options with all available fields
+      const exportOptions: LeadExportOptions = {
+        format: data.format.toLowerCase() as 'csv' | 'xlsx',
+        fields: data.fields,
         includeTags: data.includeTags,
         includeMetadata: data.includeMetadata,
-        filename: data.filename,
-        fields: data.fields,
-        leadIds: data.leadIds && data.leadIds.length > 0 ? data.leadIds : undefined,
+        filters: {
+          leadIds: data.leadIds && data.leadIds.length > 0 ? data.leadIds : undefined,
+        }
       };
 
-      // For file downloads, we need to handle the response differently
-      const response = await axios.post('/api/leads/export', exportData, {
-        responseType: 'blob', // Important for file downloads
-      });
+      // Use the leads service to export
+      const blob = await leadsService.exportLeads(exportOptions);
 
-      // Extract filename from Content-Disposition header if available
-      const contentDisposition = response.headers['content-disposition'];
-      const filenameFromHeader = contentDisposition
-        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-        : `${data.filename || 'leads-export'}.${data.format.toLowerCase()}`;
+      // Create filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `${data.filename || 'leads-export'}-${timestamp}.${data.format.toLowerCase()}`;
 
       // Create a download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filenameFromHeader);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
 
+      // Show success message
       toast.success('Export Completed', {
-        description: `Your leads have been exported to ${filenameFromHeader}`,
+        description: `Your leads have been exported to ${filename}`,
       });
+
+      // Get statistics for the exported leads
+      try {
+        const stats = await leadsService.getStatistics(exportOptions.filters);
+        console.info('Export Statistics:', {
+          totalLeads: stats.total,
+          statusBreakdown: stats.byStatus,
+          industryBreakdown: stats.byIndustry,
+          averageEngagementScore: stats.averageEngagementScore,
+        });
+      } catch (error) {
+        console.warn('Could not fetch export statistics:', error);
+      }
 
       // Close modal on success
       onClose();
     } catch (error) {
       console.error('Error exporting leads:', error);
       toast.error('Export Failed', {
-        description: 'There was a problem exporting leads. Please try again.',
+        description: error instanceof Error ? error.message : 'There was a problem exporting leads. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -150,7 +163,7 @@ export function ExportLeadsModal({ isOpen, onClose, selectedLeads = [] }: Export
             Export leads to CSV, Excel, JSON, or PDF format.
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="py-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -160,8 +173,8 @@ export function ExportLeadsModal({ isOpen, onClose, selectedLeads = [] }: Export
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Export Format</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -292,9 +305,9 @@ export function ExportLeadsModal({ isOpen, onClose, selectedLeads = [] }: Export
               />
 
               <SheetFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={onClose}
                 >
                   Cancel
