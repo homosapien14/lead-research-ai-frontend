@@ -1,22 +1,22 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Target, 
-  Mail, 
-  Search, 
-  Database, 
-  Brain, 
-  BarChart, 
-  Settings, 
-  LogOut 
+import {
+  LayoutDashboard,
+  Users,
+  Target,
+  Mail,
+  Search,
+  Database,
+  Brain,
+  BarChart,
+  Settings,
+  LogOut
 } from 'lucide-react';
 
 const Sidebar = () => {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: Target, label: 'ICP Builder', href: '/icp' },
+    { icon: Target, label: 'ICP Builder', href: '/icps' },
     { icon: Users, label: 'Leads', href: '/leads' },
     { icon: Mail, label: 'Campaigns', href: '/campaigns' },
     { icon: Search, label: 'Scraping', href: '/scraping' },
@@ -31,12 +31,12 @@ const Sidebar = () => {
       <div className="mb-8 px-4 py-3">
         <h1 className="text-xl font-bold">Lead Research AI</h1>
       </div>
-      
+
       <nav className="flex-1">
         <ul className="space-y-1">
           {navItems.map((item, index) => (
             <li key={index}>
-              <Link 
+              <Link
                 href={item.href}
                 className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-stone-800 transition-colors"
               >
@@ -47,10 +47,10 @@ const Sidebar = () => {
           ))}
         </ul>
       </nav>
-      
+
       <div className="mt-auto pt-4 border-t border-stone-700">
-        <Link 
-          href="/logout" 
+        <Link
+          href="/logout"
           className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-stone-800 transition-colors"
         >
           <LogOut size={20} />
