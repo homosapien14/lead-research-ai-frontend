@@ -83,7 +83,7 @@ class ICPService {
         }
     }
 
-    async createICP(data: ICPFormData): Promise<ICP> {
+    async createICP(data: ICPFormData & { type?: 'targeted' | 'brand_voice' }): Promise<ICP> {
         try {
             const response = await apiClient.post<ICP>('/api/icp', data);
             return response.data;
@@ -93,7 +93,7 @@ class ICPService {
         }
     }
 
-    async updateICP(id: string, data: ICPFormData): Promise<ICP> {
+    async updateICP(id: string, data: ICPFormData & { type?: 'targeted' | 'brand_voice' }): Promise<ICP> {
         try {
             const response = await apiClient.patch<ICP>(`/api/icp/${id}`, data);
             return response.data;
@@ -156,6 +156,18 @@ class ICPService {
     }> {
         const response = await apiClient.post('/api/scraping/website', { url });
         return response.data;
+    }
+
+    async getBrandVoice(): Promise<ICP | null> {
+        try {
+            const response = await apiClient.get<{ items: ICP[] }>('/api/icp', {
+                params: { type: 'brand_voice', limit: 1 }
+            });
+            return response.data.items[0] || null;
+        } catch (error) {
+            console.error('Error fetching brand voice:', error);
+            throw error;
+        }
     }
 }
 
