@@ -1,4 +1,4 @@
-import { WebsiteScrapeResult } from '@/types/icp';
+import { WebsiteScrapeResult } from '@/types/icpAndBrandvoice';
 import { apiClient } from './api-client';
 
 class ScraperService {

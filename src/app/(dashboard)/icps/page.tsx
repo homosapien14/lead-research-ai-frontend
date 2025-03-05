@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { ICPForm } from '@/components/icp/ICPForm';
-import { ICP, ICPFormData } from '@/types/icp';
-import { icpService } from '@/lib/services/icp.service';
+import { ICP, ICPFormData } from '@/types/icpAndBrandvoice';
+import { icpService } from '@/lib/services/brandvoice.service';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';

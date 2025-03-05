@@ -1,4 +1,4 @@
-import { ICPFormData, ICP, WebsiteScrapeResult, AIFieldSuggestion } from '@/types/icp';
+import { ICPFormData, ICP, WebsiteScrapeResult, AIFieldSuggestion, BrandVoiceFormData } from '@/types/icpAndBrandvoice';
 import { apiClient } from './api-client'
 
 // Helper function to normalize URL
@@ -22,17 +22,17 @@ function normalizeUrl(url: string): string {
     }
 }
 
-export interface ICPAIEnhancements {
+export interface BrandVoiceAIEnhancements {
     suggestedKeywords: string[];
     marketInsights: string[];
     recommendedApproach: string;
 }
 
-export interface EnhancedICP extends ICPFormData {
-    aiEnhancements?: ICPAIEnhancements;
+export interface EnhancedBrandVoice extends BrandVoiceFormData {
+    aiEnhancements?: BrandVoiceAIEnhancements;
 }
 
-class ICPService {
+class BrandVoiceService {
     async scrapeWebsite(url: string): Promise<WebsiteScrapeResult> {
         try {
             const normalizedUrl = normalizeUrl(url);
@@ -62,7 +62,7 @@ class ICPService {
 
     async getAIFieldSuggestions(field: string, currentValue: any): Promise<AIFieldSuggestion> {
         try {
-            const response = await apiClient.post<AIFieldSuggestion>('/api/icp/suggest', {
+            const response = await apiClient.post<AIFieldSuggestion>('/api/brandvoice/suggest', {
                 field,
                 currentValue
             });
@@ -73,70 +73,70 @@ class ICPService {
         }
     }
 
-    async enhanceICPWithAI(icpData: ICPFormData): Promise<EnhancedICP> {
+    async enhanceBrandVoiceWithAI(brandVoiceData: BrandVoiceFormData): Promise<EnhancedBrandVoice> {
         try {
-            const response = await apiClient.post<EnhancedICP>('/api/icp/enhance', icpData);
+            const response = await apiClient.post<EnhancedBrandVoice>('/api/brandvoice/enhance', brandVoiceData);
             return response.data;
         } catch (error) {
-            console.error('Error enhancing ICP with AI:', error);
+            console.error('Error enhancing brand voice with AI:', error);
             throw error;
         }
     }
 
-    async createICP(data: ICPFormData & { type?: 'targeted' | 'brand_voice' }): Promise<ICP> {
+    async createBrandVoice(data: BrandVoiceFormData & { type?: 'targeted' | 'brand_voice' }): Promise<BrandVoiceFormData> {
         try {
-            const response = await apiClient.post<ICP>('/api/icp', data);
+            const response = await apiClient.post<BrandVoiceFormData>('/api/brandvoice', data);
             return response.data;
         } catch (error) {
-            console.error('Error creating ICP:', error);
+            console.error('Error creating brand voice:', error);
             throw error;
         }
     }
 
-    async updateICP(id: string, data: ICPFormData & { type?: 'targeted' | 'brand_voice' }): Promise<ICP> {
+    async updateBrandVoice(id: string, data: BrandVoiceFormData & { type?: 'targeted' | 'brand_voice' }): Promise<BrandVoiceFormData> {
         try {
-            const response = await apiClient.patch<ICP>(`/api/icp/${id}`, data);
+            const response = await apiClient.patch<BrandVoiceFormData>(`/api/brandvoice/${id}`, data);
             return response.data;
         } catch (error) {
-            console.error('Error updating ICP:', error);
+            console.error('Error updating brand voice:', error);
             throw error;
         }
     }
 
-    async getICP(id: string): Promise<ICP> {
+    async getBrandVoice(id: string): Promise<BrandVoiceFormData> {
         try {
-            const response = await apiClient.get<ICP>(`/api/icp/${id}`);
+            const response = await apiClient.get<BrandVoiceFormData>(`/api/brandvoice/${id}`);
             return response.data;
         } catch (error) {
-            console.error('Error fetching ICP:', error);
+            console.error('Error fetching brand voice:', error);
             throw error;
         }
     }
 
-    async deleteICP(id: string): Promise<void> {
+    async deleteBrandVoice(id: string): Promise<void> {
         try {
-            await apiClient.delete(`/api/icp/${id}`);
+            await apiClient.delete(`/api/brandvoice/${id}`);
         } catch (error) {
-            console.error('Error deleting ICP:', error);
+            console.error('Error deleting brand voice:', error);
             throw error;
         }
     }
 
-    async listICPs(page: number = 1, limit: number = 10): Promise<{ items: ICP[]; total: number; page: number; limit: number }> {
+    async listBrandVoices(page: number = 1, limit: number = 10): Promise<{ items: BrandVoiceFormData[]; total: number; page: number; limit: number }> {
         try {
-            const response = await apiClient.get<{ items: ICP[]; total: number; page: number; limit: number }>('/api/icp', {
+            const response = await apiClient.get<{ items: BrandVoiceFormData[]; total: number; page: number; limit: number }>('/api/brandvoice', {
                 params: { page, limit }
             });
             return response.data;
         } catch (error) {
-            console.error('Error listing ICPs:', error);
+            console.error('Error listing brand voices:', error);
             throw error;
         }
     }
 
     async enhanceField(field: string, content: string, characterLimit: number): Promise<{ enhancedContent: string }> {
         try {
-            const response = await apiClient.post<{ enhancedContent: string }>('/api/ai/icp-assistant/enhance', {
+            const response = await apiClient.post<{ enhancedContent: string }>('/api/ai/brandvoice-assistant/enhance', {
                 field,
                 content,
                 characterLimit
@@ -158,17 +158,17 @@ class ICPService {
         return response.data;
     }
 
-    async getBrandVoice(): Promise<ICP | null> {
-        try {
-            const response = await apiClient.get<{ items: ICP[] }>('/api/icp', {
-                params: { type: 'brand_voice', limit: 1 }
-            });
-            return response.data.items[0] || null;
-        } catch (error) {
-            console.error('Error fetching brand voice:', error);
-            throw error;
-        }
-    }
+    // async getBrandVoice(): Promise<ICP | null> {
+    //     try {
+    //         const response = await apiClient.get<{ items: ICP[] }>('/api/icp', {
+    //             params: { type: 'brand_voice', limit: 1 }
+    //         });
+    //         return response.data.items[0] || null;
+    //     } catch (error) {
+    //         console.error('Error fetching brand voice:', error);
+    //         throw error;
+    //     }
+    // }
 }
 
-export const icpService = new ICPService(); 
+export const brandVoiceService = new BrandVoiceService(); 
