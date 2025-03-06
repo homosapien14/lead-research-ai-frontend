@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { ICP, ICPFormData } from '@/types/icpAndBrandvoice';
 import { Button } from '@/components/ui/button';
 import {
     Form,
@@ -19,56 +20,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import { MultiSelect, Option } from '@/components/ui/multi-select';
+import { Loader2, HelpCircle } from 'lucide-react';
+import { SimpleMultiSelect, Option } from '@/components/ui/simple-multi-select';
 import { Separator } from '@/components/ui/separator';
-
-const INDUSTRY_OPTIONS: Option[] = [
-    { label: 'Marketing Services', value: 'marketing_services' },
-    { label: 'Technology', value: 'technology' },
-    { label: 'SaaS', value: 'saas' },
-    { label: 'Digital Marketing', value: 'digital_marketing' },
-    { label: 'AI & Machine Learning', value: 'ai_ml' },
-    { label: 'Consulting', value: 'consulting' },
-    { label: 'Advertising', value: 'advertising' },
-    { label: 'Marketing Technology', value: 'martech' },
-    { label: 'Software Development', value: 'software_development' },
-    { label: 'Data Analytics', value: 'data_analytics' },
-];
-
-const COMPANY_SIZE_OPTIONS: Option[] = [
-    { label: '1-10 employees', value: '1_10' },
-    { label: '11-50 employees', value: '11_50' },
-    { label: '51-200 employees', value: '51_200' },
-    { label: '201-500 employees', value: '201_500' },
-    { label: '501-1000 employees', value: '501_1000' },
-    { label: '1001-5000 employees', value: '1001_5000' },
-    { label: '5000+ employees', value: '5000_plus' },
-];
-
-const SENIORITY_OPTIONS: Option[] = [
-    { label: 'C-Suite', value: 'c_suite' },
-    { label: 'VP', value: 'vp' },
-    { label: 'Director', value: 'director' },
-    { label: 'Manager', value: 'manager' },
-];
-
-const JOB_FUNCTION_OPTIONS: Option[] = [
-    { label: 'Executive', value: 'executive' },
-    { label: 'Marketing', value: 'marketing' },
-    { label: 'Product', value: 'product' },
-    { label: 'Technology', value: 'technology' },
-    { label: 'Sales', value: 'sales' },
-    { label: 'Operations', value: 'operations' },
-];
-
-const LOCATION_OPTIONS: Option[] = [
-    { label: 'United States', value: 'usa' },
-    { label: 'Canada', value: 'canada' },
-    { label: 'United Kingdom', value: 'uk' },
-    { label: 'Europe', value: 'europe' },
-    { label: 'Asia Pacific', value: 'apac' },
-];
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+    INDUSTRY_OPTIONS,
+    COMPANY_SIZE_OPTIONS,
+    SENIORITY_OPTIONS,
+    JOB_FUNCTION_OPTIONS,
+    LOCATION_OPTIONS,
+    CERTIFICATION_OPTIONS,
+    TECHNOLOGY_STACK_OPTIONS,
+    COMMUNICATION_CHANNEL_OPTIONS,
+} from '@/utils/formConstants';
 
 const EXPERIENCE_RANGE_OPTIONS: Option[] = [
     { label: '0-2 years', value: '0_2' },
@@ -79,43 +49,84 @@ const EXPERIENCE_RANGE_OPTIONS: Option[] = [
 
 const formSchema = z.object({
     name: z.string().min(1, 'ICP name is required').max(100, 'Name cannot exceed 100 characters'),
-
-    // Company Attributes
-    includeIndustries: z.array(z.string()).min(1, 'Select at least one industry'),
-    excludeIndustries: z.array(z.string()).optional(),
-    companySizes: z.array(z.string()).optional(),
-    companyKeywords: z.string().optional(),
-
-    // Job Criteria
-    seniority: z.array(z.string()).min(1, 'Select at least one seniority level'),
-    jobFunctions: z.array(z.string()).min(1, 'Select at least one job function'),
-    exactTitleMatch: z.boolean().default(false),
-    customTitles: z.string().optional(),
-
-    // Location
-    includeLocations: z.array(z.string()).min(1, 'Select at least one location'),
-    excludedCities: z.string().optional(),
-    excludedRegions: z.string().optional(),
-
-    // Experience
-    experienceRange: z.array(z.string()).min(1, 'Select experience range'),
-    experienceKeywords: z.string().optional(),
-
-    // Profile Keywords
-    headlineKeywords: z.string().optional(),
-    bioKeywords: z.string().optional(),
-
-    // Additional Criteria
-    notes: z.string().optional(),
+    company_attributes: z.object({
+        industries_to_include: z.array(z.string()).min(1, 'Select at least one industry'),
+        industries_to_exclude: z.array(z.string()).optional(),
+        company_sizes: z.array(z.string()).min(1, 'Select at least one company size'),
+        technology_stack: z.array(z.string()).optional(),
+        description_keywords: z.array(z.string()).optional(),
+        geography: z.object({
+            countries_to_include: z.array(z.string()).min(1, 'Select at least one location'),
+            regions_to_include: z.array(z.string()).optional(),
+            cities_to_exclude: z.array(z.string()).optional(),
+            states_to_exclude: z.array(z.string()).optional()
+        }),
+        budget_revenue_range: z.object({
+            min_budget: z.number().optional(),
+            max_budget: z.number().optional()
+        }).optional()
+    }),
+    job_title_and_role: z.object({
+        seniority_levels: z.array(z.string()).min(1, 'Select at least one seniority level'),
+        job_functions: z.array(z.string()).min(1, 'Select at least one job function'),
+        exact_keyword_match: z.boolean().default(false)
+    }),
+    pain_points_and_needs: z.object({
+        challenges: z.array(z.string()).min(1, 'Add at least one challenge'),
+        goals_objectives: z.array(z.string()).min(1, 'Add at least one goal/objective')
+    }),
+    experience_and_keywords: z.object({
+        experience_description_keywords: z.array(z.string()).min(1, 'Add at least one experience keyword'),
+        headline_keywords: z.array(z.string()).min(1, 'Add at least one headline keyword'),
+        min_months_experience: z.number().optional(),
+        bio_keywords: z.array(z.string()).optional()
+    }),
+    certifications_and_education: z.object({
+        certification_keywords: z.array(z.string()).optional(),
+        school_names: z.array(z.string()).optional()
+    }).optional()
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 interface ICPFormProps {
-    initialData?: FormData;
-    onSubmit: (data: FormData) => void;
+    initialData?: ICP | null;
+    onSubmit: (data: ICPFormData) => void;
     onCancel?: () => void;
 }
+
+// Helper function to convert comma-separated string to array
+const convertToArray = (value: string): string[] => {
+    if (!value) return [];
+    return value.split(',').map(item => item.trim()).filter(Boolean);
+};
+
+interface LabelWithTooltipProps {
+    label: string;
+    tooltip: string;
+    required?: boolean;
+}
+
+const LabelWithTooltip = ({ label, tooltip, required = false }: LabelWithTooltipProps) => (
+    <div className="flex items-center gap-2">
+        <span>{label} {required && <span className="text-red-500">*</span>}</span>
+        <TooltipProvider delayDuration={0}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button type="button" className="cursor-help">
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/70 hover:text-muted-foreground" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent 
+                    side="right" 
+                    className="max-w-[300px] text-sm bg-secondary border border-border shadow-md"
+                >
+                    <p className="text-secondary-foreground">{tooltip}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    </div>
+);
 
 export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
     const [isLoading, setIsLoading] = useState(false);
@@ -124,33 +135,54 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: initialData?.name ?? '',
-            includeIndustries: initialData?.includeIndustries ?? [],
-            excludeIndustries: initialData?.excludeIndustries ?? [],
-            companySizes: initialData?.companySizes ?? [],
-            companyKeywords: initialData?.companyKeywords ?? '',
-            seniority: initialData?.seniority ?? [],
-            jobFunctions: initialData?.jobFunctions ?? [],
-            exactTitleMatch: initialData?.exactTitleMatch ?? false,
-            customTitles: initialData?.customTitles ?? '',
-            includeLocations: initialData?.includeLocations ?? [],
-            excludedCities: initialData?.excludedCities ?? '',
-            excludedRegions: initialData?.excludedRegions ?? '',
-            experienceRange: initialData?.experienceRange ?? [],
-            experienceKeywords: initialData?.experienceKeywords ?? '',
-            headlineKeywords: initialData?.headlineKeywords ?? '',
-            bioKeywords: initialData?.bioKeywords ?? '',
-            notes: initialData?.notes ?? '',
-        },
+            company_attributes: {
+                industries_to_include: initialData?.company_attributes?.industries_to_include ?? [],
+                industries_to_exclude: initialData?.company_attributes?.industries_to_exclude ?? [],
+                company_sizes: initialData?.company_attributes?.company_sizes ?? [],
+                technology_stack: initialData?.company_attributes?.technology_stack ?? [],
+                description_keywords: initialData?.company_attributes?.description_keywords ?? [],
+                geography: {
+                    countries_to_include: initialData?.company_attributes?.geography?.countries_to_include ?? [],
+                    regions_to_include: initialData?.company_attributes?.geography?.regions_to_include ?? [],
+                    cities_to_exclude: initialData?.company_attributes?.geography?.cities_to_exclude ?? [],
+                    states_to_exclude: initialData?.company_attributes?.geography?.states_to_exclude ?? []
+                },
+                budget_revenue_range: {
+                    min_budget: initialData?.company_attributes?.budget_revenue_range?.min_budget ?? 0,
+                    max_budget: initialData?.company_attributes?.budget_revenue_range?.max_budget ?? 0
+                }
+            },
+            job_title_and_role: {
+                seniority_levels: initialData?.job_title_and_role?.seniority_levels ?? [],
+                job_functions: initialData?.job_title_and_role?.job_functions ?? [],
+                exact_keyword_match: initialData?.job_title_and_role?.exact_keyword_match ?? false
+            },
+            pain_points_and_needs: {
+                challenges: initialData?.pain_points_and_needs?.challenges ?? [],
+                goals_objectives: initialData?.pain_points_and_needs?.goals_objectives ?? []
+            },
+            experience_and_keywords: {
+                experience_description_keywords: initialData?.experience_and_keywords?.experience_description_keywords ?? [],
+                headline_keywords: initialData?.experience_and_keywords?.headline_keywords ?? [],
+                min_months_experience: initialData?.experience_and_keywords?.min_months_experience ?? 0,
+                bio_keywords: initialData?.experience_and_keywords?.bio_keywords ?? []
+            },
+            certifications_and_education: {
+                certification_keywords: initialData?.certifications_and_education?.certification_keywords ?? [],
+                school_names: initialData?.certifications_and_education?.school_names ?? []
+            }
+        }
     });
 
-    const { isDirty } = form.formState;
-
+    const isDirty = form.formState.isDirty;
+    
     const handleSubmit = async (data: FormData) => {
         try {
             setIsLoading(true);
-            await onSubmit(data);
+            await onSubmit(data as ICPFormData);
             toast.success('Target ICP saved successfully!');
         } catch (error) {
+            console.error('Form submission error:', error);
             toast.error('Failed to save target ICP');
         } finally {
             setIsLoading(false);
@@ -158,78 +190,89 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
     };
 
     return (
-        <div className="space-y-8">
-            <Card>
-                <CardHeader>
+        <Card className="shadow-lg border-0 h-full flex flex-col ">
+            <CardHeader className="shrink-0 sticky top-0 bg-background z-10 border-b px-6 py-4">
                     <CardTitle>{initialData ? 'Edit Target ICP' : 'Create Target ICP'}</CardTitle>
                     <CardDescription>
                         Define your ideal customer profile by specifying detailed targeting criteria.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+            <CardContent className="flex-1 overflow-y-auto px-6">
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>ICP Name</FormLabel>
+                                    <LabelWithTooltip 
+                                        label="ICP Name"
+                                        tooltip="Create a clear, memorable name for your target audience segment"
+                                        required
+                                    />
                                         <FormControl>
                                             <Input placeholder="Enterprise Marketing Leaders" {...field} />
                                         </FormControl>
-                                        <FormDescription>
-                                            Give this ICP a memorable name for easy reference
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            A clear, memorable name for your target audience segment
                                         </FormDescription>
-                                        <FormMessage />
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                     </FormItem>
                                 )}
                             />
 
                             <Separator className="my-6" />
                             <h3 className="text-lg font-semibold mb-4">Company Attributes</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Define the characteristics of the organizations where your ideal customers work.</p>
 
                             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
-                                    name="includeIndustries"
+                                name="company_attributes.industries_to_include"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Industries to Include</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Industries to Include"
+                                            tooltip="Select the primary industries where your ideal customers operate. This helps focus on companies in relevant business sectors."
+                                            required
+                                        />
                                             <FormControl>
-                                                <MultiSelect
+                                            <SimpleMultiSelect
                                                     options={INDUSTRY_OPTIONS}
-                                                    value={field.value}
+                                                value={field.value || []}
                                                     onChange={field.onChange}
-                                                    placeholder="Select industries..."
+                                                placeholder="e.g., SaaS, Marketing Technology, AI & ML..."
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Select the industries you want to target
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Select multiple industries to broaden your target market
                                             </FormDescription>
-                                            <FormMessage />
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
 
                                 <FormField
                                     control={form.control}
-                                    name="excludeIndustries"
+                                name="company_attributes.technology_stack"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Industries to Exclude</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Technology Stack"
+                                            tooltip="Specify technologies that your ideal customer's company uses or is interested in. This helps identify organizations with relevant technical capabilities or needs."
+                                        />
                                             <FormControl>
-                                                <MultiSelect
-                                                    options={INDUSTRY_OPTIONS}
-                                                    value={field.value ?? []}
+                                            <SimpleMultiSelect
+                                                options={TECHNOLOGY_STACK_OPTIONS}
+                                                value={field.value || []}
                                                     onChange={field.onChange}
-                                                    placeholder="Select industries to exclude..."
+                                                placeholder="e.g., React, AWS, Python..."
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Select industries you want to exclude
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Select relevant technical capabilities and tools
                                             </FormDescription>
-                                            <FormMessage />
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
@@ -237,90 +280,224 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
 
                             <FormField
                                 control={form.control}
-                                name="companySizes"
+                            name="company_attributes.company_sizes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <LabelWithTooltip 
+                                        label="Company Sizes"
+                                        tooltip="Select the employee size ranges of your target companies. This helps focus on organizations of the right scale for your offering."
+                                        required
+                                    />
+                                    <FormControl>
+                                        <SimpleMultiSelect
+                                            options={COMPANY_SIZE_OPTIONS}
+                                            value={field.value || []}
+                                            onChange={field.onChange}
+                                            placeholder="e.g., 11-50 employees, 51-200 employees..."
+                                        />
+                                    </FormControl>
+                                    <FormDescription className="text-xs text-muted-foreground">
+                                        Select multiple ranges to cover your target segment
+                                    </FormDescription>
+                                    <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="company_attributes.geography.countries_to_include"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <LabelWithTooltip 
+                                        label="Countries to Include"
+                                        tooltip="Select the geographic regions where your ideal customers are located. This helps target companies in specific markets or territories."
+                                        required
+                                    />
+                                    <FormControl>
+                                        <SimpleMultiSelect
+                                            options={LOCATION_OPTIONS}
+                                            value={field.value || []}
+                                            onChange={field.onChange}
+                                            placeholder="e.g., United States, Canada..."
+                                        />
+                                    </FormControl>
+                                    <FormDescription className="text-xs text-muted-foreground">
+                                        Select target geographic regions
+                                    </FormDescription>
+                                    <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                </FormItem>
+                            )}
+                        />
+
+                        <Separator className="my-6" />
+                        <h3 className="text-lg font-semibold mb-4">Job Title and Role</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Specify the professional characteristics and position details of your ideal customer.</p>
+
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                            <FormField
+                                control={form.control}
+                                name="job_title_and_role.seniority_levels"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Company Sizes</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Seniority Levels"
+                                            tooltip="Choose the organizational levels you want to target. This determines the decision-making authority and responsibilities of your prospects."
+                                            required
+                                        />
                                         <FormControl>
-                                            <MultiSelect
-                                                options={COMPANY_SIZE_OPTIONS}
+                                            <SimpleMultiSelect
+                                                options={SENIORITY_OPTIONS}
                                                 value={field.value || []}
                                                 onChange={field.onChange}
-                                                placeholder="Select company sizes..."
+                                                placeholder="e.g., C-Suite, VP, Director..."
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Select target company sizes (optional)
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Select decision-making levels to target
                                         </FormDescription>
-                                        <FormMessage />
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                     </FormItem>
                                 )}
                             />
 
                             <FormField
                                 control={form.control}
-                                name="companyKeywords"
+                                name="job_title_and_role.job_functions"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Company Description Keywords</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Job Functions"
+                                            tooltip="Select the primary job functions or departments of your ideal customers. This helps target professionals with relevant responsibilities and challenges."
+                                            required
+                                        />
                                         <FormControl>
-                                            <Input
-                                                placeholder="AI, technology, martech, SaaS, digital marketing"
-                                                {...field}
+                                            <SimpleMultiSelect
+                                                options={JOB_FUNCTION_OPTIONS}
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., Marketing, Sales..."
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Enter keywords to match in company descriptions (comma-separated)
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Select relevant departments and roles
                                         </FormDescription>
-                                        <FormMessage />
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                     </FormItem>
                                 )}
                             />
+                        </div>
 
                             <Separator className="my-6" />
-                            <h3 className="text-lg font-semibold mb-4">Job Criteria</h3>
+                        <h3 className="text-lg font-semibold mb-4">Pain Points and Needs</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Define the business challenges and objectives that your solution addresses for your ideal customers.</p>
 
                             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
-                                    name="seniority"
+                                name="pain_points_and_needs.challenges"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Seniority Level</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Challenges"
+                                            tooltip="List specific business problems, pain points, or obstacles that your ideal customers face. These should be challenges that your solution can help solve. Consider areas like: cost inefficiencies, operational bottlenecks, market competition, resource limitations, technology gaps, or compliance issues. Be specific to your industry and solution."
+                                            required
+                                        />
                                             <FormControl>
-                                                <MultiSelect
-                                                    options={SENIORITY_OPTIONS}
-                                                    value={field.value}
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
                                                     onChange={field.onChange}
-                                                    placeholder="Select seniority levels..."
+                                                placeholder="e.g., High CAC, Limited Market Reach, Manual Processes..."
+                                                creatable
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Select target seniority levels
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add key business challenges your solution addresses
                                             </FormDescription>
-                                            <FormMessage />
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
 
                                 <FormField
                                     control={form.control}
-                                    name="jobFunctions"
+                                name="pain_points_and_needs.goals_objectives"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Job Functions</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Goals and Objectives"
+                                            tooltip="Specify the business outcomes and objectives your ideal customers want to achieve. These should directly align with the benefits your solution provides. Consider both immediate goals (like process automation) and long-term objectives (like market expansion). Include measurable outcomes like revenue growth, cost reduction, efficiency gains, or market share increases."
+                                            required
+                                        />
                                             <FormControl>
-                                                <MultiSelect
-                                                    options={JOB_FUNCTION_OPTIONS}
-                                                    value={field.value}
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
                                                     onChange={field.onChange}
-                                                    placeholder="Select job functions..."
+                                                placeholder="e.g., Increase Revenue, Improve Customer Retention..."
+                                                creatable
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Select target job functions
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add desired business outcomes and objectives
                                             </FormDescription>
-                                            <FormMessage />
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                        <Separator className="my-6" />
+                        <h3 className="text-lg font-semibold mb-4">Experience & Keywords</h3>
+
+                            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                name="experience_and_keywords.experience_description_keywords"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <LabelWithTooltip 
+                                            label="Experience Keywords"
+                                            tooltip="Enter specific skills, expertise, or experience areas that your ideal customer should have in their profile. These keywords will be matched against their experience descriptions and job history."
+                                            required
+                                        />
+                                            <FormControl>
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., Digital Transformation, Growth Marketing, Revenue Operations..."
+                                                creatable
+                                                />
+                                            </FormControl>
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add required skills and expertise areas
+                                        </FormDescription>
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                name="experience_and_keywords.headline_keywords"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <LabelWithTooltip 
+                                            label="Headline Keywords"
+                                            tooltip="Add job titles or professional descriptions that would appear in your ideal customer's profile headline. These are typically current role titles or professional identifiers."
+                                            required
+                                        />
+                                            <FormControl>
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., Head of Marketing, Marketing Director, Growth Lead..."
+                                                creatable
+                                                />
+                                            </FormControl>
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add target job titles and roles
+                                            </FormDescription>
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
@@ -329,226 +506,181 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
                             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
-                                    name="exactTitleMatch"
+                                name="experience_and_keywords.min_months_experience"
+                                render={({ field: { onChange, ...field } }) => (
+                                        <FormItem>
+                                        <LabelWithTooltip 
+                                            label="Minimum Months Experience"
+                                            tooltip="Set the minimum required work experience in months to target professionals with the right level of expertise. This helps ensure prospects have sufficient industry knowledge and experience. For example: 60 months (5 years) indicates mid-level experience, while 120 months (10 years) suggests senior expertise. Consider your solution's complexity and the decision-making level you're targeting."
+                                        />
+                                            <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                min="0"
+                                                placeholder="e.g., 120 for 10 years"
+                                                {...field}
+                                                value={field.value?.toString() || ''}
+                                                onChange={e => {
+                                                    const value = e.target.value;
+                                                    onChange(value === '' ? undefined : parseInt(value));
+                                                }}
+                                                />
+                                            </FormControl>
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Specify required experience in months
+                                            </FormDescription>
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                name="experience_and_keywords.bio_keywords"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                        <FormItem>
+                                        <LabelWithTooltip 
+                                            label="Bio Keywords"
+                                            tooltip="Identify keywords that appear in professional bios or about sections. These keywords can reveal interests, expertise areas, and professional focus. Look for industry-specific terms, technology mentions, methodologies, or strategic approaches that align with your solution. This helps find prospects who are actively engaged or interested in relevant areas."
+                                        />
+                                            <FormControl>
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., AI, Martech, SaaS, Marketing Automation..."
+                                                creatable
+                                                />
+                                            </FormControl>
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add keywords to match in professional bios
+                                            </FormDescription>
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                        <Separator className="my-6" />
+                        <h3 className="text-lg font-semibold mb-4">Additional Targeting</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Fine-tune your targeting with additional criteria to find the most relevant prospects.</p>
+
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                            <FormField
+                                control={form.control}
+                                name="company_attributes.description_keywords"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <LabelWithTooltip 
+                                            label="Company Description Keywords"
+                                            tooltip="Enter keywords to match against company descriptions and profiles. These help identify organizations that align with your target market based on how they describe themselves. Consider industry terms, technology mentions, service offerings, or market positioning that indicates a good fit. This can help find companies at the right stage or with relevant focus areas."
+                                        />
+                                        <FormControl>
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., AI, Enterprise Software, Cloud Solutions..."
+                                                creatable
+                                            />
+                                        </FormControl>
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add keywords to match in company profiles
+                                        </FormDescription>
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
+                                    </FormItem>
+                                )}
+                            />
+
+                                <FormField
+                                    control={form.control}
+                                name="job_title_and_role.exact_keyword_match"
+                                    render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
-                                                <FormLabel className="text-base">
-                                                    Exact Title Match
-                                                </FormLabel>
-                                                <FormDescription>
-                                                    Enable for strict job title matching
-                                                </FormDescription>
+                                                <LabelWithTooltip 
+                                                    label="Exact Keyword Match"
+                                                    tooltip="Toggle between exact or flexible keyword matching. When enabled, keywords must match exactly as entered (e.g., 'Marketing Director' won't match 'Director of Marketing'). When disabled, similar variations and partial matches will be included."
+                                                />
+                                                <FormDescription className="text-xs text-muted-foreground">
+                                                    Enable for precise matching, disable to include similar variations
+                                            </FormDescription>
                                             </div>
                                             <FormControl>
                                                 <Switch
                                                     checked={field.value}
                                                     onCheckedChange={field.onChange}
+                                                    className="data-[state=checked]:bg-primary"
                                                 />
                                             </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="customTitles"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Custom Job Titles</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="CEO, Founder, VP of Marketing"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Enter specific job titles (comma-separated)
-                                            </FormDescription>
-                                            <FormMessage />
+                                        </div>
+                                        <div className="rounded-md bg-muted/50 p-3">
+                                            <p className="text-xs text-muted-foreground">
+                                                Example: When enabled, "Marketing Director" will not match "Director of Marketing" or "Senior Marketing Director"
+                                            </p>
+                                        </div>
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
                             </div>
 
-                            <Separator className="my-6" />
-                            <h3 className="text-lg font-semibold mb-4">Location</h3>
+                        <Separator className="my-6" />
+                        <h3 className="text-lg font-semibold mb-4">Certifications & Education</h3>
 
                             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
-                                    name="includeLocations"
+                                name="certifications_and_education.certification_keywords"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Locations to Include</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="Certification Keywords"
+                                            tooltip="Specify professional certifications that indicate relevant expertise or qualifications. This can include technical certifications, professional credentials, or industry-specific qualifications that demonstrate knowledge in areas important to your solution. Consider both broad industry standards and specialized certifications specific to your target market."
+                                        />
                                             <FormControl>
-                                                <MultiSelect
-                                                    options={LOCATION_OPTIONS}
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    placeholder="Select locations..."
+                                            <SimpleMultiSelect
+                                                options={CERTIFICATION_OPTIONS}
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="e.g., AWS Certified, Google Cloud..."
+                                                creatable
                                                 />
                                             </FormControl>
-                                            <FormDescription>
-                                                Select target locations
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add relevant professional certifications
                                             </FormDescription>
-                                            <FormMessage />
+                                            <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                         </FormItem>
                                     )}
                                 />
 
                                 <FormField
                                     control={form.control}
-                                    name="excludedRegions"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Excluded Regions</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="Enter regions to exclude"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Specify regions to exclude (comma-separated)
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <FormField
-                                control={form.control}
-                                name="excludedCities"
+                                name="certifications_and_education.school_names"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Excluded Cities</FormLabel>
+                                        <LabelWithTooltip 
+                                            label="School Names"
+                                            tooltip="Target professionals based on their educational background. This can be useful if certain institutions are known for strong programs in relevant fields, or if you want to target alumni from specific schools. Consider including both prestigious institutions and schools known for specialized programs aligned with your solution."
+                                        />
                                         <FormControl>
-                                            <Input
-                                                placeholder="Enter cities to exclude"
-                                                {...field}
+                                            <SimpleMultiSelect
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="Enter school names..."
+                                                creatable
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Specify cities to exclude (comma-separated)
+                                        <FormDescription className="text-xs text-muted-foreground">
+                                            Add target educational institutions
                                         </FormDescription>
-                                        <FormMessage />
+                                        <FormMessage className="text-sm font-medium text-destructive mt-1" />
                                     </FormItem>
                                 )}
                             />
+                        </div>
 
-                            <Separator className="my-6" />
-                            <h3 className="text-lg font-semibold mb-4">Experience & Keywords</h3>
-
-                            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                                <FormField
-                                    control={form.control}
-                                    name="experienceRange"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Experience Range</FormLabel>
-                                            <FormControl>
-                                                <MultiSelect
-                                                    options={EXPERIENCE_RANGE_OPTIONS}
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    placeholder="Select experience range..."
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Select required experience range
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="experienceKeywords"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Experience Keywords</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="AI, marketing technology, SaaS, growth strategy"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Enter keywords to match in experience (comma-separated)
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                                <FormField
-                                    control={form.control}
-                                    name="headlineKeywords"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Headline Keywords</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="Founder, CEO, VP, Director"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Keywords to match in profile headlines
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="bioKeywords"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Bio Keywords</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="AI, Martech, SaaS, NLP, startup"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Keywords to match in profile bios
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Additional Notes</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Add any additional notes or criteria"
-                                                className="min-h-[100px]"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Any additional information or special requirements
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <div className="flex justify-end space-x-4">
+                        <div className="flex justify-end space-x-4 sticky bottom-0 bg-background py-4 border-t -mx-6 px-6 mt-6">
                                 {onCancel && (
                                     <Button type="button" variant="outline" onClick={onCancel}>
                                         Cancel
@@ -561,7 +693,7 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
                                     {isLoading ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
-                                        'Save Target ICP'
+                                        isDirty ? 'Save Target ICP' : 'No Changes'
                                     )}
                                 </Button>
                             </div>
@@ -569,6 +701,5 @@ export function ICPForm({ initialData, onSubmit, onCancel }: ICPFormProps) {
                     </Form>
                 </CardContent>
             </Card>
-        </div>
     );
 } 
